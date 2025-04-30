@@ -47,7 +47,7 @@ def analisar_pdf(file, nome_arquivo):
                         })
     return resultados
 
-aba = st.sidebar.radio("Escolha o modo de uso:", ["📁 Fazer upload de PDFs", "🌐 Scraping de página RI"])
+aba = st.sidebar.radio("Escolha o modo de uso:", ["🌐 Scraping de página RI", "📁 Upload de PDFs"])
 
 def exibir_resultados(resultados):
     if resultados:
@@ -58,16 +58,7 @@ def exibir_resultados(resultados):
     else:
         st.warning("Nenhuma ocorrência encontrada.")
 
-if aba == "📁 Fazer upload de PDFs":
-    arquivos = st.file_uploader("Faça upload de um ou mais PDFs", type="pdf", accept_multiple_files=True)
-    if arquivos:
-        todos_resultados = []
-        for file in arquivos:
-            resultados = analisar_pdf(BytesIO(file.read()), file.name)
-            todos_resultados.extend(resultados)
-        exibir_resultados(todos_resultados)
-
-elif aba == "🌐 Scraping de página RI":
+if aba == "🌐 Scraping de página RI":
     url = st.text_input("Cole a URL da página de RI da empresa (onde estão os PDFs):")
     if url and st.button("🔎 Buscar PDFs e analisar"):
         with st.spinner("Buscando PDFs..."):
@@ -88,3 +79,12 @@ elif aba == "🌐 Scraping de página RI":
                 exibir_resultados(todos_resultados)
             except Exception as e:
                 st.error(f"Erro ao acessar a página: {e}")
+
+elif aba == "📁 Upload de PDFs":
+    arquivos = st.file_uploader("Faça upload de um ou mais PDFs", type="pdf", accept_multiple_files=True)
+    if arquivos:
+        todos_resultados = []
+        for file in arquivos:
+            resultados = analisar_pdf(BytesIO(file.read()), file.name)
+            todos_resultados.extend(resultados)
+        exibir_resultados(todos_resultados)

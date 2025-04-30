@@ -18,6 +18,13 @@ def analisar_pdf(file, nome_arquivo):
     with pdfplumber.open(file) as pdf:
         for i, page in enumerate(pdf.pages, start=1):
             texto = page.extract_text() or ""
+            if not texto:
+                st.warning(f"Sem texto extraído da página {i} do arquivo {nome_arquivo}.")
+                continue
+
+            # Exibir o conteúdo extraído para depuração
+            st.write(f"Conteúdo extraído da página {i} de {nome_arquivo}:", texto)
+
             # Normalizar o texto para evitar problemas com quebras de linha ou espaços extras
             texto = ' '.join(texto.split())
             texto_linhas = texto.lower().split("\n")
@@ -31,7 +38,7 @@ def analisar_pdf(file, nome_arquivo):
                         "Conteúdo": linha.strip(),
                         "Valores": ""
                     })
-            
+
             # Verificar se a página contém tabelas e buscar palavras-chave
             tabelas = page.extract_tables()
             for tabela in tabelas:
@@ -59,7 +66,7 @@ def exibir_resultados(resultados):
         st.warning("Nenhuma ocorrência encontrada.")
 
 if aba == "🌐 Scraping de página RI":
-    url = st.text_input("Cole a URL da página de RI da empresa (onde estão os PDFs):")
+    url = st.text_input("Cole a URL da página de RI da empresa (onde estão os PDFs):", "https://ri.portoseguro.com.br/informacoes-aos-acionistas/demonstracoes-financeiras-por-empresa/")
     if url and st.button("🔎 Buscar PDFs e analisar"):
         with st.spinner("Buscando PDFs..."):
             try:
@@ -67,6 +74,10 @@ if aba == "🌐 Scraping de página RI":
                 soup = BeautifulSoup(res.text, "html.parser")
                 links = [a['href'] for a in soup.find_all('a', href=True) if ".pdf" in a['href']]
                 links = [l if l.startswith("http") else requests.compat.urljoin(url, l) for l in links]
+                
+                if not links:
+                    st.warning("Nenhum link para PDF encontrado na página.")
+                
                 todos_resultados = []
                 for link in links:
                     nome_arquivo = link.split("/")[-1].split("?")[0]

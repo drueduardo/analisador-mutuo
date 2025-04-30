@@ -10,6 +10,7 @@ st.set_page_config(page_title="Analisador de Mútuos", layout="wide")
 
 PALAVRAS_CHAVE = ["mútuo", "mútuos", "empréstimo entre partes relacionadas"]
 REGEX_VALORES = re.compile(r"R?\$?\s?[\d\.]+(?:,\d+)?", re.IGNORECASE)
+PALAVRAS_RELEVANTES_PDF = ["ITR", "Demonstrações Financeiras", "Balanço", "Relatório de Resultados", "Relatório Financeiro"]
 
 st.title("🔍 Analisador de Mútuos em PDFs Financeiros")
 
@@ -29,14 +30,16 @@ def analisar_pdf(file, nome_arquivo):
             texto = ' '.join(texto.split())
             texto_linhas = texto.lower().split("\n")
 
+            # Ajustar a busca das palavras-chave
             for linha in texto_linhas:
                 if any(palavra in linha for palavra in PALAVRAS_CHAVE):
+                    valores = REGEX_VALORES.findall(linha)
                     resultados.append({
                         "Arquivo": nome_arquivo,
                         "Página": i,
                         "Tipo": "Texto",
                         "Conteúdo": linha.strip(),
-                        "Valores": ""
+                        "Valores": ", ".join(valores) if valores else "Não encontrado"
                     })
 
             # Verificar se a página contém tabelas e buscar palavras-chave
@@ -50,7 +53,7 @@ def analisar_pdf(file, nome_arquivo):
                             "Página": i,
                             "Tipo": "Tabela",
                             "Conteúdo": " | ".join(cell.strip() if cell else "" for cell in linha),
-                            "Valores": ", ".join(valores) if valores else ""
+                            "Valores": ", ".join(valores) if valores else "Não encontrado"
                         })
     return resultados
 
@@ -72,14 +75,22 @@ if aba == "🌐 Scraping de página RI":
             try:
                 res = requests.get(url)
                 soup = BeautifulSoup(res.text, "html.parser")
+                
+                # Procurar por links de PDFs com palavras-chave relevantes
                 links = [a['href'] for a in soup.find_all('a', href=True) if ".pdf" in a['href']]
                 links = [l if l.startswith("http") else requests.compat.urljoin(url, l) for l in links]
                 
-                if not links:
-                    st.warning("Nenhum link para PDF encontrado na página.")
+                # Filtrar links para apenas aqueles que contêm palavras-chave no link ou na descrição
+                links_relevantes = []
+                for link in links:
+                    if any(palavra in link for palavra in PALAVRAS_RELEVANTES_PDF):
+                        links_relevantes.append(link)
+                
+                if not links_relevantes:
+                    st.warning("Nenhum link relevante para PDF encontrado na página.")
                 
                 todos_resultados = []
-                for link in links:
+                for link in links_relevantes:
                     nome_arquivo = link.split("/")[-1].split("?")[0]
                     try:
                         pdf_content = requests.get(link).content

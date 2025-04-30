@@ -18,9 +18,12 @@ def analisar_pdf(file, nome_arquivo):
     with pdfplumber.open(file) as pdf:
         for i, page in enumerate(pdf.pages, start=1):
             texto = page.extract_text() or ""
+            # Normalizar o texto para evitar problemas com quebras de linha ou espaços extras
+            texto = ' '.join(texto.split())
             texto_linhas = texto.lower().split("\n")
+
             for linha in texto_linhas:
-                if any(p in linha for p in PALAVRAS_CHAVE):
+                if any(palavra in linha for palavra in PALAVRAS_CHAVE):
                     resultados.append({
                         "Arquivo": nome_arquivo,
                         "Página": i,
@@ -28,10 +31,12 @@ def analisar_pdf(file, nome_arquivo):
                         "Conteúdo": linha.strip(),
                         "Valores": ""
                     })
+            
+            # Verificar se a página contém tabelas e buscar palavras-chave
             tabelas = page.extract_tables()
             for tabela in tabelas:
                 for linha in tabela:
-                    if linha and any(cell and any(p in cell.lower() for p in PALAVRAS_CHAVE) for cell in linha):
+                    if linha and any(cell and any(palavra in cell.lower() for palavra in PALAVRAS_CHAVE) for cell in linha):
                         valores = [cell for cell in linha if cell and REGEX_VALORES.search(cell)]
                         resultados.append({
                             "Arquivo": nome_arquivo,
